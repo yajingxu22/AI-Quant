@@ -146,6 +146,35 @@ indicators:
       - name: "atr"
         description: "平均真实波幅 ATR"
 
+# ─── 数据诊断检查 ──────────────────────────────────────────────────────────
+diagnosis:
+  basic_info:
+    description: "输出行数、列数、日期范围、交易日数"
+  missing_values:
+    description: "逐列检查缺失值数量与比例"
+    action: "report"                   # report / drop / fill
+  dtype_check:
+    description: "确认各字段数据类型是否正确"
+    fields:
+      trade_date: "datetime"
+      open/high/low/close: "float"
+      vol/amount: "float"
+      pct_chg: "float"
+  descriptive_stats:
+    description: "计算数值字段的均值/标准差/极值/25%/50%/75% 分位数"
+    fields: ["open", "high", "low", "close", "vol", "amount", "pct_chg"]
+  date_continuity:
+    description: "检查交易日间隔，标记超过 5 天的间隔"
+    max_gap_days: 5
+    action: "warn"
+  outlier_detection:
+    description: "3σ 原则 (|z-score| > 3) 检测异常值"
+    method: "z_score"
+    threshold: 3
+    fields: ["pct_chg", "vol"]
+  key_metrics:
+    description: "计算起始收盘价、涨跌幅、最高最低价、均价、收益率标准差、涨跌天数"
+
 # ─── 数据质量规则 ──────────────────────────────────────────────────────────
 quality:
   min_periods:
