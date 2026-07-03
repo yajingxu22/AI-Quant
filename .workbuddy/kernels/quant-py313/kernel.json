@@ -1,0 +1,6 @@
+{
+ "argv": ["/Users/xuyajing/.workbuddy/binaries/python/versions/3.13.12/bin/python3", "-m", "ipykernel_launcher", "-f", "{connection_file}"],
+ "display_name": "Python 3.13 (Quant)",
+ "language": "python",
+ "metadata": { "debugger": true }
+}

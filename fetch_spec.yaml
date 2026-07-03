@@ -1,0 +1,189 @@
+# ============================================================================
+#  股票数据获取规范 (Stock Data Fetch Specification)
+#  版本: v1.0
+#  数据源: Tushare Pro
+#  用途: 标准化股票每日交易数据取数流程
+# ============================================================================
+
+# ─── 全局配置 ──────────────────────────────────────────────────────────────
+global:
+  data_source: "tushare_pro"           # 数据源
+  api_token_env: "TUSHARE_TOKEN"       # Token 环境变量名（避免硬编码）
+  default_date_range:
+    start: "1_year_ago"                # 支持: 1_year_ago / 3_year_ago / YYYYMMDD
+    end: "today"                       # 支持: today / YYYYMMDD
+  output:
+    format: "csv"                      # 输出格式: csv / parquet
+    directory: "data/raw"              # 相对项目根目录
+    naming: "{ts_code}_{start}_{end}"  # 文件名模板, 如 600031.SH_20250702_20260702
+  encoding: "utf-8-sig"               # CSV 编码（utf-8-sig 兼容 Excel）
+
+# ─── 股票标的池 ─────────────────────────────────────────────────────────────
+stocks:
+  - name: "中芯国际"                   # 中文名称
+    ts_code: "688981.SH"               # Tushare 代码
+    exchange: "SSE"                    # 交易所: SSE / SZSE / BSE
+    market: "科创板"                    # 市场板块
+    industry: "半导体"                  # 行业
+    list_date: "20200716"              # 上市日期
+    type: "a_share"                    # 类型: a_share / hk_stock / us_stock
+    currency: "CNY"                    # 交易货币
+
+  - name: "比亚迪"
+    ts_code: "002594.SZ"
+    exchange: "SZSE"
+    market: "主板"
+    industry: "汽车"
+    list_date: "20110630"
+    type: "a_share"
+    currency: "CNY"
+
+  - name: "长江电力"
+    ts_code: "600900.SH"
+    exchange: "SSE"
+    market: "主板"
+    industry: "电力"
+    list_date: "20031118"
+    type: "a_share"
+    currency: "CNY"
+
+# ─── 数据字段定义 ──────────────────────────────────────────────────────────
+fields:
+  common:
+    # A 股日线行情标准字段（Tushare daily 接口）
+    - name: "ts_code"
+      description: "股票代码"
+      dtype: "string"
+    - name: "trade_date"
+      description: "交易日期"
+      dtype: "date"
+      format: "YYYYMMDD"
+      is_index: true
+    - name: "open"
+      description: "开盘价"
+      dtype: "float"
+      unit: "元"
+    - name: "high"
+      description: "最高价"
+      dtype: "float"
+      unit: "元"
+    - name: "low"
+      description: "最低价"
+      dtype: "float"
+      unit: "元"
+    - name: "close"
+      description: "收盘价"
+      dtype: "float"
+      unit: "元"
+    - name: "pre_close"
+      description: "昨收价"
+      dtype: "float"
+      unit: "元"
+    - name: "change"
+      description: "涨跌额"
+      dtype: "float"
+      unit: "元"
+    - name: "pct_chg"
+      description: "涨跌幅（%）"
+      dtype: "float"
+      unit: "%"
+    - name: "vol"
+      description: "成交量（手）"
+      dtype: "float"
+      unit: "手"
+    - name: "amount"
+      description: "成交额（元）"
+      dtype: "float"
+      unit: "元"
+
+# ─── 数据质量规则 ──────────────────────────────────────────────────────────
+quality:
+  missing_values:
+    action: "drop"                     # drop / fill_forward / fill_zero / raise
+  date_gaps:
+    max_gap_days: 5                    # 最大允许交易日间隔（含周末/节假日）
+    action: "warn"                     # warn / fill / raise
+  duplicates:
+    check_columns: ["ts_code", "trade_date"]
+    action: "drop_keep_last"
+
+# ─── 派生字段 ──────────────────────────────────────────────────────────────
+derived_fields:
+  - name: "ma5"
+    description: "5 日移动平均"
+    formula: "close.rolling(5).mean()"
+  - name: "ma10"
+    description: "10 日移动平均"
+    formula: "close.rolling(10).mean()"
+  - name: "ma20"
+    description: "20 日移动平均"
+    formula: "close.rolling(20).mean()"
+  - name: "ma60"
+    description: "60 日移动平均"
+    formula: "close.rolling(60).mean()"
+  - name: "vol_ma5"
+    description: "5 日均量"
+    formula: "vol.rolling(5).mean()"
+  - name: "turnover_rate"
+    description: "换手率估算（需 free_share）"
+    formula: "vol / free_share * 100"
+
+# ─── 调用接口配置 ──────────────────────────────────────────────────────────
+interfaces:
+  daily:
+    # Tushare pro.daily 接口
+    tushare_api: "daily"
+    params:
+      ts_code: "{stock.ts_code}"
+      start_date: "{start_date}"
+      end_date: "{end_date}"
+    fields:
+      - "ts_code"
+      - "trade_date"
+      - "open"
+      - "high"
+      - "low"
+      - "close"
+      - "pre_close"
+      - "change"
+      - "pct_chg"
+      - "vol"
+      - "amount"
+
+  adj_factor:
+    # 复权因子（如需计算前/后复权价格）
+    tushare_api: "adj_factor"
+    params:
+      ts_code: "{stock.ts_code}"
+      start_date: "{start_date}"
+      end_date: "{end_date}"
+    fields:
+      - "ts_code"
+      - "trade_date"
+      - "adj_factor"
+
+# ─── 运行流程 ──────────────────────────────────────────────────────────────
+pipeline:
+  steps:
+    - step: 1
+      name: "validate_config"
+      description: "校验配置文件格式和必填字段"
+
+    - step: 2
+      name: "fetch_daily"
+      description: "调用 Tushare daily 接口获取日线数据"
+      interface: "daily"
+      retry: 3
+      retry_delay: 5                 # 秒
+
+    - step: 3
+      name: "quality_check"
+      description: "执行数据质量检查（缺失值/重复值/日期连续性）"
+
+    - step: 4
+      name: "compute_derived"
+      description: "计算派生字段（移动平均线等）"
+
+    - step: 5
+      name: "save_output"
+      description: "按 output.naming 模板保存到 output.directory"
