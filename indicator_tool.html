@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>技术指标交互工具</title>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="data_raw.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -118,6 +119,7 @@ const STOCK_DATA = {};
 // For demo, data is fetched from server; in production, embedded
 async function loadStockData() {
   const codes = ['002594.SZ','600031.SH','600900.SH','688981.SH'];
+  let loaded = 0;
   for (const code of codes) {
     try {
       const resp = await fetch(`data/raw/${code}_20250703_20260703.csv`);
@@ -132,10 +134,21 @@ async function loadStockData() {
           pct_chg: +c[8], vol: +c[9], amount: +c[10]
         };
       });
+      loaded++;
     } catch(e) {
-      console.warn(`${code}: ${e.message}`);
-      STOCK_DATA[code] = [];
+      console.warn(`${code}: fetch failed, trying embedded data`);
     }
+    // Fallback to embedded data
+    if (!STOCK_DATA[code] && window.STOCK_DATA_EMBEDDED && window.STOCK_DATA_EMBEDDED[code]) {
+      STOCK_DATA[code] = window.STOCK_DATA_EMBEDDED[code].map(d => ({
+        date: String(d[0]), open: d[1], high: d[2], low: d[3],
+        close: d[4], pct_chg: d[5], vol: d[6]
+      }));
+      loaded++;
+    }
+  }
+  if (loaded === 0) {
+    document.getElementById('dataInfo').textContent = '⚠️ 数据加载失败，请用 HTTP 服务打开此页面或检查 data_raw.js';
   }
 }
 
