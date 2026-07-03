@@ -73,7 +73,7 @@ indicators:
       step2: "        EMA_slow = close.ewm(span=slow_period).mean()"
       step3: "DIF (快线) = EMA_fast - EMA_slow"
       step4: "DEA (信号线) = DIF.ewm(span=signal_period).mean()"
-      step5: "MACD 柱 (Histogram) = 2 × (DIF - DEA)"
+      step5: "MACD 柱 (Histogram) = DIF - DEA"
     interpretation:
       golden_cross: "DIF 上穿 DEA  → 金叉 (买入信号)"
       death_cross: "DIF 下穿 DEA   → 死叉 (卖出信号)"
