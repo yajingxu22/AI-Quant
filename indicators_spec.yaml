@@ -1,0 +1,183 @@
+# ============================================================================
+#  技术指标计算规范 (Technical Indicators Specification)
+#  版本: v1.0
+#  数据源: Tushare Pro / 本地 CSV
+#  用途: 标准化 RSI / MACD / 布林带 / ATR 四个经典指标的计算流程
+# ============================================================================
+
+global:
+  data_source: "tushare_pro"
+  default_window_days: 365           # 默认回溯窗口
+  output:
+    format: "csv"
+    directory: "data/indicators"
+    naming: "{ts_code}_indicators.csv"
+
+# ─── 输入数据要求 ──────────────────────────────────────────────────────────
+input:
+  required_fields:
+    - name: "trade_date"
+      description: "交易日期"
+      dtype: "date"
+    - name: "open"
+      description: "开盘价"
+      dtype: "float"
+    - name: "high"
+      description: "最高价"
+      dtype: "float"
+    - name: "low"
+      description: "最低价"
+      dtype: "float"
+    - name: "close"
+      description: "收盘价"
+      dtype: "float"
+
+# ─── 指标定义 ──────────────────────────────────────────────────────────────
+indicators:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 1. RSI — 相对强弱指标 (Relative Strength Index)
+  # ═══════════════════════════════════════════════════════════════════════════
+  - name: "RSI"
+    full_name: "Relative Strength Index"
+    description: "衡量近期价格变动的速度和幅度，判断超买/超卖"
+    period: 14                        # 标准周期
+    formula:
+      step1: "计算每日价格变动: delta = close - close.shift(1)"
+      step2: "分离上涨和下跌: gain = delta.where(delta > 0, 0), loss = -delta.where(delta < 0, 0)"
+      step3: "计算平滑平均: avg_gain = gain.ewm(alpha=1/period).mean()"
+      step4: "                avg_loss = loss.ewm(alpha=1/period).mean()"
+      step5: "计算 RS = avg_gain / avg_loss"
+      step6: "计算 RSI = 100 - (100 / (1 + RS))"
+    interpretation:
+      overbought: "RSI > 70  → 超买"
+      oversold: "RSI < 30    → 超卖"
+      middle: "RSI = 50      → 多空平衡"
+    output_fields:
+      - name: "rsi"
+        description: "RSI 值"
+        range: "[0, 100]"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 2. MACD — 指数平滑异同移动平均线
+  # ═══════════════════════════════════════════════════════════════════════════
+  - name: "MACD"
+    full_name: "Moving Average Convergence Divergence"
+    description: "通过短期与长期指数移动平均线的聚合/分离判断趋势强度与方向"
+    params:
+      fast_period: 12                 # 快线周期
+      slow_period: 26                 # 慢线周期
+      signal_period: 9               # 信号线周期
+    formula:
+      step1: "计算 EMA: EMA_fast = close.ewm(span=fast_period).mean()"
+      step2: "        EMA_slow = close.ewm(span=slow_period).mean()"
+      step3: "DIF (快线) = EMA_fast - EMA_slow"
+      step4: "DEA (信号线) = DIF.ewm(span=signal_period).mean()"
+      step5: "MACD 柱 (Histogram) = 2 × (DIF - DEA)"
+    interpretation:
+      golden_cross: "DIF 上穿 DEA  → 金叉 (买入信号)"
+      death_cross: "DIF 下穿 DEA   → 死叉 (卖出信号)"
+      positive: "MACD 柱 > 0     → 多头动能增强"
+      negative: "MACD 柱 < 0     → 空头动能增强"
+    output_fields:
+      - name: "macd_dif"
+        description: "DIF 快线"
+      - name: "macd_dea"
+        description: "DEA 信号线"
+      - name: "macd_hist"
+        description: "MACD 柱状图值"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 3. 布林带 (Bollinger Bands)
+  # ═══════════════════════════════════════════════════════════════════════════
+  - name: "Bollinger Bands"
+    full_name: "布林带 / 布林线"
+    description: "基于移动平均线和标准差的价格区间，判断价格相对位置与波动性"
+    params:
+      period: 20                      # 中轨移动平均周期
+      std_dev: 2                      # 标准差倍数
+    formula:
+      step1: "中轨 (Middle) = close.rolling(period).mean()"
+      step2: "标准差 (Std) = close.rolling(period).std()"
+      step3: "上轨 (Upper) = Middle + std_dev × Std"
+      step4: "下轨 (Lower) = Middle - std_dev × Std"
+      step5: "带宽 (Bandwidth) = (Upper - Lower) / Middle × 100%"
+      step6: "%B = (close - Lower) / (Upper - Lower)"
+    interpretation:
+      touch_upper: "价格触及/突破上轨 → 超买或强趋势"
+      touch_lower: "价格触及/跌破下轨 → 超卖或强趋势"
+      squeeze: "带宽收窄 → 突破即将来临"
+      expansion: "带宽扩大 → 趋势确立"
+    output_fields:
+      - name: "boll_mid"
+        description: "中轨 (MA)"
+      - name: "boll_upper"
+        description: "上轨"
+      - name: "boll_lower"
+        description: "下轨"
+      - name: "boll_bandwidth"
+        description: "带宽 (%)"
+      - name: "boll_pctb"
+        description: "%B 值"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 4. ATR — 平均真实波幅 (Average True Range)
+  # ═══════════════════════════════════════════════════════════════════════════
+  - name: "ATR"
+    full_name: "Average True Range"
+    description: "衡量市场波动性，计算一定周期内的真实波幅均值"
+    period: 14                        # 标准周期 (也可用 20)
+    formula:
+      step1: "计算 True Range 的三个候选值:"
+      step2: "  TR1 = high - low              (当日最高-最低)"
+      step3: "  TR2 = |high - pre_close|      (当日最高-昨收)"
+      step4: "  TR3 = |low - pre_close|       (当日最低-昨收)"
+      step5: "  TR = max(TR1, TR2, TR3)       (取三者最大值)"
+      step6: "计算 ATR:"
+      step7: "  首日 ATR = TR.rolling(period).mean()"
+      step8: "  之后 ATR = (前日 ATR × (period-1) + 当日 TR) / period"
+    interpretation:
+      high_atr: "ATR 上升 → 波动加大，适合缩小仓位/扩大止损"
+      low_atr: "ATR 下降  → 波动收窄，震荡行情"
+      stop_loss: "常用止损 = 入场价 ± 2 × ATR"
+    output_fields:
+      - name: "true_range"
+        description: "真实波幅 TR"
+      - name: "atr"
+        description: "平均真实波幅 ATR"
+
+# ─── 数据质量规则 ──────────────────────────────────────────────────────────
+quality:
+  min_periods:
+    rsi: 15                           # 至少需要 15 期数据
+    macd: 27                          # 至少需要 27 期数据
+    bollinger: 21                     # 至少需要 21 期数据
+    atr: 15                           # 至少需要 15 期数据
+  forward_fill: true                  # NaN 值向前填充
+  drop_initial_na: true               # 删除计算初期的 NaN 行
+
+# ─── 可视化配置 ────────────────────────────────────────────────────────────
+visualization:
+  style:
+    theme: "light"
+    up_color: "#e74c3c"              # A 股惯例: 涨 = 红
+    down_color: "#27ae60"            # A 股惯例: 跌 = 绿
+  layout:
+    - panel: "price"
+      height_ratio: 3
+      indicators: ["close", "boll_upper", "boll_mid", "boll_lower"]
+    - panel: "volume"
+      height_ratio: 1
+      indicators: ["vol"]
+    - panel: "macd"
+      height_ratio: 1.5
+      indicators: ["macd_dif", "macd_dea", "macd_hist"]
+    - panel: "rsi"
+      height_ratio: 1.2
+      indicators: ["rsi"]
+      y_range: [0, 100]
+      overbought: 70
+      oversold: 30
+    - panel: "atr"
+      height_ratio: 1
+      indicators: ["atr"]
