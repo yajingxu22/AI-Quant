@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 量化研究站 · 主页</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f4f6fb;
+    color: #1f2937;
+    line-height: 1.6;
+  }
+  .hero {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    color: #fff;
+    padding: 64px 24px 72px;
+    text-align: center;
+  }
+  .hero .badge {
+    display: inline-block;
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.3);
+    padding: 4px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    letter-spacing: .5px;
+    margin-bottom: 18px;
+  }
+  .hero h1 { font-size: 40px; font-weight: 800; letter-spacing: 1px; }
+  .hero p {
+    margin: 14px auto 0;
+    max-width: 640px;
+    font-size: 16px;
+    color: rgba(255,255,255,.88);
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 48px 0 22px;
+    color: #111827;
+  }
+  .section-title::before {
+    content: "";
+    width: 6px; height: 24px;
+    background: #2563eb;
+    border-radius: 4px;
+  }
+  .section-title small { font-size: 13px; font-weight: 400; color: #9ca3af; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 22px;
+  }
+  .card {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 26px 24px;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 2px 8px rgba(17,24,39,.05);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 14px 30px rgba(37,99,235,.16);
+    border-color: #93c5fd;
+  }
+  .card .icon {
+    font-size: 34px;
+    width: 58px; height: 58px;
+    display: flex; align-items: center; justify-content: center;
+    background: #eff4ff;
+    border-radius: 14px;
+    margin-bottom: 16px;
+  }
+  .card h3 { font-size: 19px; font-weight: 700; margin-bottom: 8px; }
+  .card p { font-size: 14px; color: #6b7280; flex: 1; }
+  .card .tags { margin: 14px 0 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .card .tags span {
+    font-size: 12px;
+    color: #2563eb;
+    background: #eff4ff;
+    border: 1px solid #dbeafe;
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
+  .card .open {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card:hover .open { gap: 11px; }
+  footer {
+    margin-top: 64px;
+    padding: 28px 24px;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 13px;
+    border-top: 1px solid #e5e7eb;
+  }
+  footer a { color: #2563eb; text-decoration: none; }
+  @media (max-width: 520px) {
+    .hero h1 { font-size: 30px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <span class="badge">QUANT · RESEARCH · LAB</span>
+  <h1>AI 量化研究站</h1>
+  <p>基于真实 A 股日线数据的策略回测、技术指标与可视化工具集。所有看板均支持参数交互，数据已内嵌，开箱即用。</p>
+</header>
+
+<main class="wrap">
+
+  <h2 class="section-title">策略回测 <small>趋势跟踪 / 均线交叉 · 可调参数实时回测</small></h2>
+  <div class="grid">
+
+    <a class="card" href="Turtle%20Strategy/turtle_dashboard.html">
+      <div class="icon">🐢</div>
+      <h3>海龟策略回测看板</h3>
+      <p>经典趋势跟踪体系：Donchian 高低价通道突破入场、Wilder ATR 波动率定仓位、金字塔加仓 + 2N 硬止损；System 1/2 双系统并行。后复权数据，参数实时可调。</p>
+      <div class="tags"><span>趋势跟踪</span><span>ATR 仓位管理</span><span>双系统</span><span>后复权</span></div>
+      <span class="open">打开看板 →</span>
+    </a>
+
+    <a class="card" href="MA%20Strategy/dual_ma_dashboard.html">
+      <div class="icon">📈</div>
+      <h3>双均线策略回测看板</h3>
+      <p>金叉买入、死叉卖出的经典均线策略。支持快慢均线周期调节、后复权数据处理，内置净值曲线与 MDD / 夏普等绩效指标。</p>
+      <div class="tags"><span>均线交叉</span><span>后复权</span><span>绩效指标</span></div>
+      <span class="open">打开看板 →</span>
+    </a>
+
+  </div>
+
+  <h2 class="section-title">指标与图表 <small>技术指标 / 个股可视化</small></h2>
+  <div class="grid">
+
+    <a class="card" href="indicator_tool.html">
+      <div class="icon">🛠️</div>
+      <h3>技术指标交互工具</h3>
+      <p>多标的、多周期技术指标可视化，支持 MA / MACD / RSI / BOLL 等多种指标与参数交互调节，快速探查量价特征。</p>
+      <div class="tags"><span>技术指标</span><span>交互可视化</span></div>
+      <span class="open">打开工具 →</span>
+    </a>
+
+    <a class="card" href="sany_600031_chart.html">
+      <div class="icon">🏗️</div>
+      <h3>三一重工价格走势</h3>
+      <p>600031.SH 每日收盘价走势可视化，单股数据的探索性图表，含基础统计与走势呈现。</p>
+      <div class="tags"><span>个股可视化</span><span>收盘价</span></div>
+      <span class="open">打开图表 →</span>
+    </a>
+
+  </div>
+
+</main>
+
+<footer>
+  AI 量化研究站 · 基于 Python / Plotly 构建 · 数据来源 Tushare ·
+  本站点仅供研究与学习，不构成任何投资建议。
+</footer>
+
+</body>
+</html>
